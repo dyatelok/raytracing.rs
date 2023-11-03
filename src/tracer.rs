@@ -1,6 +1,10 @@
 use euler::{vec3, Vec3};
 
-struct Camera {
+use super::color::*;
+
+pub struct Tracer {}
+
+pub struct Camera {
     pos: Vec3,
     dir: Vec3,
     base1: Vec3,
@@ -8,6 +12,14 @@ struct Camera {
 }
 
 impl Camera {
+    pub fn from(pos: Vec3, dir: Vec3, base1: Vec3, base2: Vec3) -> Self {
+        Self {
+            pos,
+            dir,
+            base1,
+            base2,
+        }
+    }
     fn get_ray(&self, u: f32, v: f32) -> Ray {
         Ray {
             pos: self.pos,
@@ -21,13 +33,19 @@ struct Ray {
     dir: Vec3,
 }
 
-struct Light {
+pub struct Light {
     pos: Vec3,
     int: f32,
     col: Color,
 }
 
-enum Object3d {
+impl Light {
+    pub fn from(pos: Vec3, int: f32, col: Color) -> Self {
+        Self { pos, int, col }
+    }
+}
+
+pub enum Object3d {
     Sphere(Sphere),
     Trig(Trig),
 }
@@ -59,13 +77,16 @@ impl Object3d {
     }
 }
 
-struct Sphere {
+pub struct Sphere {
     pos: Vec3,
     rad: f32,
     col: Color,
 }
 
 impl Sphere {
+    pub fn from(pos: Vec3, rad: f32, col: Color) -> Self {
+        Self { pos, rad, col }
+    }
     fn is_ray_intersect(&self, R: &Ray) -> bool {
         let v: Vec3 = R.pos - self.pos;
         let b: f32 = 2.0 * v.dot(R.dir);
@@ -122,7 +143,7 @@ impl Sphere {
     }
 }
 
-struct Trig {
+pub struct Trig {
     v0: Vec3,
     v1: Vec3,
     v2: Vec3,
@@ -130,6 +151,9 @@ struct Trig {
 }
 
 impl Trig {
+    pub fn from(v0: Vec3, v1: Vec3, v2: Vec3, col: Color) -> Self {
+        Self { v0, v1, v2, col }
+    }
     fn is_ray_intersect(&self, R: &Ray) -> bool {
         let norm: Vec3 = (self.v1 - self.v0).cross(self.v2 - self.v0);
         let A = norm.x;
@@ -200,16 +224,12 @@ impl Trig {
     }
 }
 
-fn conv(col: Color) -> [u8; 4] {
-    [col.r, col.g, col.b, col.a]
-}
-
 fn colorize(col: Color, k: f32) -> [u8; 4] {
     [
-        (col.r as f32 * k) as u8,
-        (col.g as f32 * k) as u8,
-        (col.b as f32 * k) as u8,
-        (col.a as f32 * k) as u8,
+        (col.0[0] as f32 * k) as u8,
+        (col.0[1] as f32 * k) as u8,
+        (col.0[2] as f32 * k) as u8,
+        (col.0[3] as f32 * k) as u8,
     ]
 }
 
@@ -224,7 +244,7 @@ fn cast_ray(TT: &Vec<Object3d>, LL: &Vec<Light>, R: &Ray) -> [u8; 4] {
     let mut mem: &Object3d;
     let memt: f32;
     if V.len() == 0 {
-        return conv(sky_color);
+        return sky_color.into();
     }
     mem = V[0];
     memt = V[0].give_t(R);
@@ -235,7 +255,7 @@ fn cast_ray(TT: &Vec<Object3d>, LL: &Vec<Light>, R: &Ray) -> [u8; 4] {
     }
 
     match mem.get_ray_brightness(R, LL, TT) {
-        None => conv(sky_color),
+        None => sky_color.into(),
         Some(a) => {
             let c = a.min(255.0).max(0.0) / 255.0;
             colorize(mem.get_color(), c)
@@ -243,42 +263,34 @@ fn cast_ray(TT: &Vec<Object3d>, LL: &Vec<Light>, R: &Ray) -> [u8; 4] {
     }
 }
 
-fn get_color(u: f32, v: f32, TT: &Vec<Object3d>, LL: &Vec<Light>, cam: &Camera) -> [u8; 4] {
+pub fn get_color(u: f32, v: f32, TT: &Vec<Object3d>, LL: &Vec<Light>, cam: &Camera) -> [u8; 4] {
     let R: Ray = cam.get_ray(u, v);
     cast_ray(TT, LL, &R)
 }
 
 fn construct(t: f32) -> (Vec<Object3d>, Vec<Light>) {
     let mut TT: Vec<Object3d> = vec![];
-    let T: Object3d = Object3d::Trig(Trig {
-        v0: vec3!(5.0, -5.0, -1.0),
-        v1: vec3!(5.0, 5.0, -1.0),
-        v2: vec3!(-5.0, 5.0, -1.0),
-        col: Color::MAGENTA,
-    });
+    let T: Object3d = Object3d::Trig(Trig::from(
+        vec3!(5.0, -5.0, -1.0),
+        vec3!(5.0, 5.0, -1.0),
+        vec3!(-5.0, 5.0, -1.0),
+        Color::MAGENTA,
+    ));
     TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig {
-        v0: vec3!(5.0, -5.0, -1.0),
-        v1: vec3!(-5.0, -5.0, -1.0),
-        v2: vec3!(-5.0, 5.0, -1.0),
-        col: Color::MAGENTA,
-    });
+    let T: Object3d = Object3d::Trig(Trig::from(
+        vec3!(5.0, -5.0, -1.0),
+        vec3!(-5.0, -5.0, -1.0),
+        vec3!(-5.0, 5.0, -1.0),
+        Color::MAGENTA,
+    ));
     TT.push(T);
 
-    let T: Object3d = Object3d::Sphere(Sphere {
-        pos: vec3!(),
-        rad: 1.0,
-        col: Color::RED,
-    });
+    let T: Object3d = Object3d::Sphere(Sphere::from(vec3!(), 1.0, Color::RED));
     TT.push(T);
 
     let mut LL: Vec<Light> = vec![];
 
-    let L: Light = Light {
-        pos: vec3!(2.0, 1.0, 2.0) * 5.0,
-        int: 7500.0,
-        col: Color::ORANGE,
-    };
+    let L: Light = Light::from(vec3!(2.0, 1.0, 2.0) * 5.0, 7500.0, Color::ORANGE);
     LL.push(L);
 
     (TT, LL)
