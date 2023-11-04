@@ -50,8 +50,8 @@ impl Light {
 }
 
 pub trait Object3d {
-    fn is_ray_intersect(&self, ray: &Ray) -> bool;
-    fn give_t(&self, ray: &Ray) -> f32;
+    fn intersects(&self, ray: &Ray) -> bool;
+    fn get_t(&self, ray: &Ray) -> f32;
     fn get_color(&self) -> Color;
 }
 
@@ -69,7 +69,7 @@ impl Sphere {
 }
 
 impl Object3d for Sphere {
-    fn is_ray_intersect(&self, ray: &Ray) -> bool {
+    fn intersects(&self, ray: &Ray) -> bool {
         let v: Vec3 = ray.pos - self.pos;
         let b: f32 = 2.0 * v.dot(ray.dir);
         let c: f32 = v.dot(v) - self.rad * self.rad;
@@ -84,7 +84,7 @@ impl Object3d for Sphere {
         }
         false
     }
-    fn give_t(&self, ray: &Ray) -> f32 {
+    fn get_t(&self, ray: &Ray) -> f32 {
         let v: Vec3 = ray.pos - self.pos;
         let b: f32 = 2.0 * v.dot(ray.dir);
         let c: f32 = v.dot(v) - self.rad * self.rad;
@@ -115,7 +115,7 @@ impl Trig {
 }
 
 impl Object3d for Trig {
-    fn is_ray_intersect(&self, ray: &Ray) -> bool {
+    fn intersects(&self, ray: &Ray) -> bool {
         let norm: Vec3 = (self.v1 - self.v0).cross(self.v2 - self.v0);
         let a = norm.x;
         let b = norm.y;
@@ -145,7 +145,7 @@ impl Object3d for Trig {
         }
         true
     }
-    fn give_t(&self, ray: &Ray) -> f32 {
+    fn get_t(&self, ray: &Ray) -> f32 {
         let norm: Vec3 = (self.v1 - self.v0).cross(self.v2 - self.v0);
         let a = norm.x;
         let b = norm.y;

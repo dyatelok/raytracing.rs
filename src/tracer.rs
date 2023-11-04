@@ -97,15 +97,15 @@ fn construct(t: f32) -> (Vec<Box<dyn Object3d + Sync>>, Vec<Light>) {
             Color::BLUE,
         )),
         Box::new(Trig::from(
-            vec3!(5.0, -5.0, -2.0),
-            vec3!(5.0, 5.0, -2.0),
-            vec3!(-5.0, 5.0, -2.0),
+            vec3!(5.0, -5.0, -0.5),
+            vec3!(5.0, 5.0, -0.5),
+            vec3!(-5.0, 5.0, -0.5),
             Color::MAGENTA,
         )),
         Box::new(Trig::from(
-            vec3!(5.0, -5.0, -2.0),
-            vec3!(-5.0, -5.0, -2.0),
-            vec3!(-5.0, 5.0, -2.0),
+            vec3!(5.0, -5.0, -0.5),
+            vec3!(-5.0, -5.0, -0.5),
+            vec3!(-5.0, 5.0, -0.5),
             Color::MAGENTA,
         )),
     ];
@@ -166,7 +166,7 @@ impl Tracer {
         let mut intersecting: Vec<&Box<dyn Object3d + Sync>> = Vec::new();
 
         for object in &self.objects {
-            if object.is_ray_intersect(ray) {
+            if object.intersects(ray) {
                 intersecting.push(object);
             }
         }
@@ -177,47 +177,33 @@ impl Tracer {
 
         let colliding = intersecting
             .into_iter()
-            .map(|obj| (obj, obj.give_t(ray)))
+            .map(|obj| (obj, obj.get_t(ray)))
             .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
             .unwrap()
             .0;
 
-        match self.get_ray_brightness(colliding, ray) {
-            None => SKY_COLOR.into(),
-            Some(a) => {
-                let c = a.min(255.0).max(0.0) / 255.0;
-                (colliding.get_color() * c).into()
-            }
-        }
+        let coef = self.get_ray_brightness(colliding, ray);
+        let coef = coef.min(255.0).max(0.0) / 255.0;
+        (colliding.get_color() * coef).into()
     }
 
-    fn get_ray_brightness(&self, object: &Box<dyn Object3d + Sync>, ray: &Ray) -> Option<f32> {
-        if !object.is_ray_intersect(ray) {
-            return None;
-        }
+    fn get_ray_brightness(&self, object: &Box<dyn Object3d + Sync>, ray: &Ray) -> f32 {
+        self.lights.iter().fold(0.0, |acc, light_source| {
+            let object_t = object.get_t(ray);
+            let pos = ray.pos + ray.dir * (object_t - 0.001);
+            let to_light = light_source.pos - pos;
+            let light_ray = Ray::from(pos, to_light.normalize());
 
-        let mut brightness: f32 = 0.;
-        for light_source in &self.lights {
-            let light_ray = Ray::from(
-                ray.pos + ray.dir * (object.give_t(ray) - 0.001),
-                vec3!() - (ray.pos + ray.dir * object.give_t(ray) - light_source.pos).normalize(),
-            );
+            let is_light_ray_intersect: bool =
+                self.objects.iter().any(|elem| elem.intersects(&light_ray));
 
-            let is_light_ray_intersect: bool = self
-                .objects
-                .iter()
-                .any(|elem| elem.is_ray_intersect(&light_ray));
-
-            if !is_light_ray_intersect {
-                brightness += light_source.int
-                    * (vec3!() - ray.dir)
-                        .dot(light_source.pos - (ray.pos + ray.dir * object.give_t(ray)))
-                    / (object.give_t(ray)
-                        + (light_source.pos - (ray.pos + object.give_t(ray) * ray.dir)).length())
-                    .powi(2)
+            if is_light_ray_intersect {
+                acc
+            } else {
+                acc + light_source.int * (vec3!() - ray.dir).dot(to_light)
+                    / (object.get_t(ray) + (to_light).length()).powi(2)
             }
-        }
-        Some(brightness)
+        })
     }
 }
 
