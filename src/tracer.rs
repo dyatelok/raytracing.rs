@@ -42,14 +42,14 @@ impl Tracer {
 
     fn cast_ray(&self, ray: &Ray) -> [u8; 4] {
         let sky_color = Color::SKYBLUE;
-        let mut intersecting: Vec<Box<dyn Object3d>> = Vec::new();
+        let mut intersecting: Vec<&Box<dyn Object3d>> = Vec::new();
         for object in &self.objects {
             if object.is_ray_intersect(ray) {
                 intersecting.push(object);
             }
         }
 
-        let mut mem: Box<dyn Object3d>;
+        let mut mem: &Box<dyn Object3d>;
         let memt: f32;
 
         if intersecting.len() == 0 {
@@ -82,14 +82,14 @@ impl Tracer {
             return None;
         }
         let mut br: f32 = 0.;
-        for light_source in self.lights {
+        for light_source in &self.lights {
             let light_ray = Ray {
                 pos: ray.pos + ray.dir * (object.give_t(ray) - 0.001),
                 dir: vec3!()
                     - (ray.pos + ray.dir * object.give_t(ray) - light_source.pos).normalize(),
             };
             let mut is_light_ray_intersect: bool = false;
-            for elem in self.objects {
+            for elem in &self.objects {
                 is_light_ray_intersect =
                     is_light_ray_intersect || elem.is_ray_intersect(&light_ray);
             }
