@@ -10,6 +10,9 @@ use winit::{
 use winit_input_helper::WinitInputHelper;
 
 mod color;
+mod primitives;
+
+use primitives::Camera;
 
 mod tracer;
 use tracer::*;
