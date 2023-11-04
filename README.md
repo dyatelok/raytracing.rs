@@ -1,3 +1,3 @@
 # raytracing.rs
 
-This project was written a very long time ago. I currently rewrite it.
+This is currently just a raycaster.

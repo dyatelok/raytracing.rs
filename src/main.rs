@@ -49,7 +49,7 @@ fn main() -> Result<(), Error> {
     );
 
     let mut t: f32 = 1.3;
-    let mut tracer = Tracer::from(SIDE, camera, Box::new(|t| construct(t)));
+    let mut tracer = Tracer::from(SIDE, camera, Box::new(construct));
 
     event_loop.run(move |event, _, control_flow| {
         let start_time = Instant::now();
@@ -87,55 +87,54 @@ fn main() -> Result<(), Error> {
 
             if let Err(_err) = pixels.render() {
                 *control_flow = ControlFlow::Exit;
-                return;
             }
         }
     });
 }
 
-use std::f32::consts::PI;
+use std::f32::consts::FRAC_PI_4;
 
 fn construct(t: f32) -> (Vec<Box<dyn Object3d>>, Vec<Light>) {
     let mut vertex = [[[vec3!(); 2]; 2]; 2];
     vertex[0][0][0] = vec3!(
         -1.0,
-        -(2.0 as f32).sqrt() * (t + PI / 4.0).sin(),
-        -(2.0 as f32).sqrt() * (t + PI / 4.0).cos()
+        -(2_f32).sqrt() * (t + FRAC_PI_4).sin(),
+        -(2_f32).sqrt() * (t + FRAC_PI_4).cos()
     );
     vertex[0][0][1] = vec3!(
         -1.0,
-        -(2.0 as f32).sqrt() * (t + PI / 4.0).cos(),
-        (2.0 as f32).sqrt() * (t + PI / 4.0).sin()
+        -(2_f32).sqrt() * (t + FRAC_PI_4).cos(),
+        (2_f32).sqrt() * (t + FRAC_PI_4).sin()
     );
     vertex[0][1][0] = vec3!(
         -1.0,
-        (2.0 as f32).sqrt() * (t + PI / 4.0).cos(),
-        -(2.0 as f32).sqrt() * (t + PI / 4.0).sin()
+        (2_f32).sqrt() * (t + FRAC_PI_4).cos(),
+        -(2_f32).sqrt() * (t + FRAC_PI_4).sin()
     );
     vertex[0][1][1] = vec3!(
         -1.0,
-        (2.0 as f32).sqrt() * (t + PI / 4.0).sin(),
-        (2.0 as f32).sqrt() * (t + PI / 4.0).cos()
+        (2_f32).sqrt() * (t + FRAC_PI_4).sin(),
+        (2_f32).sqrt() * (t + FRAC_PI_4).cos()
     );
     vertex[1][0][0] = vec3!(
         1.0,
-        -(2.0 as f32).sqrt() * (t + PI / 4.0).sin(),
-        -(2.0 as f32).sqrt() * (t + PI / 4.0).cos()
+        -(2_f32).sqrt() * (t + FRAC_PI_4).sin(),
+        -(2_f32).sqrt() * (t + FRAC_PI_4).cos()
     );
     vertex[1][0][1] = vec3!(
         1.0,
-        -(2.0 as f32).sqrt() * (t + PI / 4.0).cos(),
-        (2.0 as f32).sqrt() * (t + PI / 4.0).sin()
+        -(2_f32).sqrt() * (t + FRAC_PI_4).cos(),
+        (2_f32).sqrt() * (t + FRAC_PI_4).sin()
     );
     vertex[1][1][0] = vec3!(
         1.0,
-        (2.0 as f32).sqrt() * (t + PI / 4.0).cos(),
-        -(2.0 as f32).sqrt() * (t + PI / 4.0).sin()
+        (2_f32).sqrt() * (t + FRAC_PI_4).cos(),
+        -(2_f32).sqrt() * (t + FRAC_PI_4).sin()
     );
     vertex[1][1][1] = vec3!(
         1.0,
-        (2.0 as f32).sqrt() * (t + PI / 4.0).sin(),
-        (2.0 as f32).sqrt() * (t + PI / 4.0).cos()
+        (2_f32).sqrt() * (t + FRAC_PI_4).sin(),
+        (2_f32).sqrt() * (t + FRAC_PI_4).cos()
     );
 
     let objects: Vec<Box<dyn Object3d>> = vec![
@@ -231,6 +230,6 @@ fn construct(t: f32) -> (Vec<Box<dyn Object3d>>, Vec<Light>) {
         Color::ORANGE,
     )];
 
-    (objects.into(), lights)
+    (objects, lights)
 }
 

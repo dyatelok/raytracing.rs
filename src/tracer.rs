@@ -49,22 +49,19 @@ impl Tracer {
             }
         }
 
-        let mut mem: &Box<dyn Object3d>;
-        let memt: f32;
-
-        if intersecting.len() == 0 {
+        if intersecting.is_empty() {
             return sky_color.into();
         }
 
-        mem = intersecting[0];
-        memt = intersecting[0].give_t(ray);
+        let mut mem = intersecting[0];
+        let memt = intersecting[0].give_t(ray);
         for v in intersecting {
             if v.give_t(ray) < memt {
                 mem = v;
             }
         }
 
-        match self.get_ray_brightness(&mem, ray) {
+        match self.get_ray_brightness(mem, ray) {
             None => sky_color.into(),
             Some(a) => {
                 let c = a.min(255.0).max(0.0) / 255.0;
@@ -93,7 +90,7 @@ impl Tracer {
                 is_light_ray_intersect =
                     is_light_ray_intersect || elem.is_ray_intersect(&light_ray);
             }
-            if is_light_ray_intersect == false {
+            if !is_light_ray_intersect {
                 br += light_source.int
                     * (vec3!() - ray.dir)
                         .dot(light_source.pos - (ray.pos + ray.dir * object.give_t(ray)))
@@ -131,7 +128,7 @@ impl Camera {
     }
 }
 
-struct Ray {
+pub struct Ray {
     pos: Vec3,
     dir: Vec3,
 }
@@ -139,6 +136,7 @@ struct Ray {
 pub struct Light {
     pos: Vec3,
     int: f32,
+    #[allow(dead_code)]
     col: Color,
 }
 
@@ -149,8 +147,8 @@ impl Light {
 }
 
 pub trait Object3d {
-    fn is_ray_intersect(&self, R: &Ray) -> bool;
-    fn give_t(&self, R: &Ray) -> f32;
+    fn is_ray_intersect(&self, ray: &Ray) -> bool;
+    fn give_t(&self, ray: &Ray) -> f32;
     fn get_color(&self) -> Color;
 }
 
@@ -161,15 +159,16 @@ pub struct Sphere {
 }
 
 impl Sphere {
+    #[allow(dead_code)]
     pub fn from(pos: Vec3, rad: f32, col: Color) -> Self {
         Self { pos, rad, col }
     }
 }
 
 impl Object3d for Sphere {
-    fn is_ray_intersect(&self, R: &Ray) -> bool {
-        let v: Vec3 = R.pos - self.pos;
-        let b: f32 = 2.0 * v.dot(R.dir);
+    fn is_ray_intersect(&self, ray: &Ray) -> bool {
+        let v: Vec3 = ray.pos - self.pos;
+        let b: f32 = 2.0 * v.dot(ray.dir);
         let c: f32 = v.dot(v) - self.rad * self.rad;
         let d: f32 = b * b - 4.0 * c;
         if d < 0.0 {
@@ -182,9 +181,9 @@ impl Object3d for Sphere {
         }
         false
     }
-    fn give_t(&self, R: &Ray) -> f32 {
-        let v: Vec3 = R.pos - self.pos;
-        let b: f32 = 2.0 * v.dot(R.dir);
+    fn give_t(&self, ray: &Ray) -> f32 {
+        let v: Vec3 = ray.pos - self.pos;
+        let b: f32 = 2.0 * v.dot(ray.dir);
         let c: f32 = v.dot(v) - self.rad * self.rad;
         let d: f32 = b * b - 4.0 * c;
         if d < 0.0 {
@@ -213,24 +212,24 @@ impl Trig {
 }
 
 impl Object3d for Trig {
-    fn is_ray_intersect(&self, R: &Ray) -> bool {
+    fn is_ray_intersect(&self, ray: &Ray) -> bool {
         let norm: Vec3 = (self.v1 - self.v0).cross(self.v2 - self.v0);
-        let A = norm.x;
-        let B = norm.y;
-        let C = norm.z;
-        let D = -(A * self.v0.x + B * self.v0.y + C * self.v0.z);
-        if A * R.dir.x + B * R.dir.y + C * R.dir.z == 0.0 {
+        let a = norm.x;
+        let b = norm.y;
+        let c = norm.z;
+        let d = -(a * self.v0.x + b * self.v0.y + c * self.v0.z);
+        if norm.dot(ray.dir) == 0.0 {
             return false;
         }
-        let t = -(D + A * R.pos.x + B * R.pos.y + C * R.pos.z)
-            / (A * R.dir.x + B * R.dir.y + C * R.dir.z);
+        let t = -(d + a * ray.pos.x + b * ray.pos.y + c * ray.pos.z)
+            / (a * ray.dir.x + b * ray.dir.y + c * ray.dir.z);
         if t < 0.0 {
             return false;
         }
-        let M = R.pos + t * R.dir;
-        let a = self.v0 - M;
-        let b = self.v1 - M;
-        let c = self.v2 - M;
+        let m = ray.pos + t * ray.dir;
+        let a = self.v0 - m;
+        let b = self.v1 - m;
+        let c = self.v2 - m;
         let base = (self.v2 - self.v0).cross(self.v1 - self.v0).normalize();
         if (a.cross(b).normalize() + base).length() > 0.01 {
             return false;
@@ -243,17 +242,17 @@ impl Object3d for Trig {
         }
         true
     }
-    fn give_t(&self, R: &Ray) -> f32 {
+    fn give_t(&self, ray: &Ray) -> f32 {
         let norm: Vec3 = (self.v1 - self.v0).cross(self.v2 - self.v0);
-        let A = norm.x;
-        let B = norm.y;
-        let C = norm.z;
-        let D = -(A * self.v0.x + B * self.v0.y + C * self.v0.z);
-        if A * R.dir.x + B * R.dir.y + C * R.dir.z == 0.0 {
+        let a = norm.x;
+        let b = norm.y;
+        let c = norm.z;
+        let d = -(a * self.v0.x + b * self.v0.y + c * self.v0.z);
+        if norm.dot(ray.dir) == 0.0 {
             return -1.0;
         }
-        let t = -(D + A * R.pos.x + B * R.pos.y + C * R.pos.z)
-            / (A * R.dir.x + B * R.dir.y + C * R.dir.z);
+        let t = -(d + a * ray.pos.x + b * ray.pos.y + c * ray.pos.z)
+            / (a * ray.dir.x + b * ray.dir.y + c * ray.dir.z);
         t
     }
     fn get_color(&self) -> Color {
