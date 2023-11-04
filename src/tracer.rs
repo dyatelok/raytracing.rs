@@ -1,31 +1,139 @@
 use euler::{vec3, Vec3};
+use rayon::prelude::*;
 
 use super::color::*;
+
+use std::f32::consts::{FRAC_PI_4, SQRT_2};
+
+fn construct(t: f32) -> (Vec<Box<dyn Object3d + Sync>>, Vec<Light>) {
+    let t = t + FRAC_PI_4;
+    let tsin = t.sin();
+    let tcos = t.cos();
+
+    let mut vertex = [[[vec3!(); 2]; 2]; 2];
+    vertex[0][0][0] = vec3!(-1.0, -SQRT_2 * tsin, -SQRT_2 * tcos);
+    vertex[0][0][1] = vec3!(-1.0, -SQRT_2 * tcos, SQRT_2 * tsin);
+    vertex[0][1][0] = vec3!(-1.0, SQRT_2 * tcos, -SQRT_2 * tsin);
+    vertex[0][1][1] = vec3!(-1.0, SQRT_2 * tsin, SQRT_2 * tcos);
+    vertex[1][0][0] = vec3!(1.0, -SQRT_2 * tsin, -SQRT_2 * tcos);
+    vertex[1][0][1] = vec3!(1.0, -SQRT_2 * tcos, SQRT_2 * tsin);
+    vertex[1][1][0] = vec3!(1.0, SQRT_2 * tcos, -SQRT_2 * tsin);
+    vertex[1][1][1] = vec3!(1.0, SQRT_2 * tsin, SQRT_2 * tcos);
+
+    let objects: Vec<Box<dyn Object3d + Sync>> = vec![
+        Box::new(Trig::from(
+            vertex[0][0][0],
+            vertex[0][1][0],
+            vertex[0][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][1][1],
+            vertex[0][1][0],
+            vertex[0][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][0][0],
+            vertex[1][1][0],
+            vertex[1][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][1][1],
+            vertex[1][0][1],
+            vertex[1][1][0],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][0][0],
+            vertex[1][0][0],
+            vertex[0][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][0][1],
+            vertex[1][0][0],
+            vertex[0][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][1][0],
+            vertex[1][1][0],
+            vertex[0][1][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][1][1],
+            vertex[0][1][1],
+            vertex[1][1][0],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][0][0],
+            vertex[0][1][0],
+            vertex[1][0][0],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][1][0],
+            vertex[0][1][0],
+            vertex[1][0][0],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][0][1],
+            vertex[0][1][1],
+            vertex[1][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][1][1],
+            vertex[1][0][1],
+            vertex[0][1][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vec3!(5.0, -5.0, -2.0),
+            vec3!(5.0, 5.0, -2.0),
+            vec3!(-5.0, 5.0, -2.0),
+            Color::MAGENTA,
+        )),
+        Box::new(Trig::from(
+            vec3!(5.0, -5.0, -2.0),
+            vec3!(-5.0, -5.0, -2.0),
+            vec3!(-5.0, 5.0, -2.0),
+            Color::MAGENTA,
+        )),
+    ];
+
+    let lights = vec![Light::from(
+        vec3!(2.0, 1.0, 10.0) / 2.0,
+        10000.0,
+        Color::ORANGE,
+    )];
+
+    (objects, lights)
+}
 
 pub struct Tracer {
     side: usize,
     camera: Camera,
-    objects: Vec<Box<dyn Object3d>>,
+    objects: Vec<Box<dyn Object3d + Sync>>,
     lights: Vec<Light>,
-    constructor: Box<dyn Fn(f32) -> (Vec<Box<dyn Object3d>>, Vec<Light>)>,
 }
 
 impl Tracer {
-    pub fn from(
-        side: usize,
-        camera: Camera,
-        constructor: Box<dyn Fn(f32) -> (Vec<Box<dyn Object3d>>, Vec<Light>)>,
-    ) -> Self {
+    pub fn from(side: usize, camera: Camera) -> Self {
         Self {
             side,
             camera,
             objects: vec![],
             lights: vec![],
-            constructor,
         }
     }
     fn set(&mut self, t: f32) {
-        let (objects, lights) = (*self.constructor)(t);
+        let (objects, lights) = construct(t);
         self.objects = objects;
         self.lights = lights;
     }
@@ -33,16 +141,22 @@ impl Tracer {
         let scr = self.side as f32 / 2.0;
         self.set(t);
 
+        let screen_pre: Vec<_> = (0..self.side.pow(2))
+            .into_par_iter()
+            .map(|pos| {
+                let (x, y) = (pos / self.side, pos % self.side);
+                self.get_color((y as f32 - scr) / scr, (x as f32 - scr) / scr)
+            })
+            .collect();
+
         for (pos, pix) in screen.chunks_exact_mut(4).enumerate() {
-            let (x, y) = (pos / self.side, pos % self.side);
-            let color = self.get_color((y as f32 - scr) / scr, (x as f32 - scr) / scr);
-            pix.copy_from_slice(&color);
+            pix.copy_from_slice(&screen_pre[pos]);
         }
     }
 
     fn cast_ray(&self, ray: &Ray) -> [u8; 4] {
         let sky_color = Color::SKYBLUE;
-        let mut intersecting: Vec<&Box<dyn Object3d>> = Vec::new();
+        let mut intersecting: Vec<&Box<dyn Object3d + Sync>> = Vec::new();
         for object in &self.objects {
             if object.is_ray_intersect(ray) {
                 intersecting.push(object);
@@ -74,7 +188,7 @@ impl Tracer {
         let ray: Ray = self.camera.get_ray(u, v);
         self.cast_ray(&ray)
     }
-    fn get_ray_brightness(&self, object: &Box<dyn Object3d>, ray: &Ray) -> Option<f32> {
+    fn get_ray_brightness(&self, object: &Box<dyn Object3d + Sync>, ray: &Ray) -> Option<f32> {
         if !object.is_ray_intersect(ray) {
             return None;
         }

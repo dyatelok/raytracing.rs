@@ -10,7 +10,6 @@ use winit::{
 use winit_input_helper::WinitInputHelper;
 
 mod color;
-use color::*;
 
 mod tracer;
 use tracer::*;
@@ -49,7 +48,7 @@ fn main() -> Result<(), Error> {
     );
 
     let mut t: f32 = 1.3;
-    let mut tracer = Tracer::from(SIDE, camera, Box::new(construct));
+    let mut tracer = Tracer::from(SIDE, camera);
 
     event_loop.run(move |event, _, control_flow| {
         let start_time = Instant::now();
@@ -90,146 +89,5 @@ fn main() -> Result<(), Error> {
             }
         }
     });
-}
-
-use std::f32::consts::FRAC_PI_4;
-
-fn construct(t: f32) -> (Vec<Box<dyn Object3d>>, Vec<Light>) {
-    let mut vertex = [[[vec3!(); 2]; 2]; 2];
-    vertex[0][0][0] = vec3!(
-        -1.0,
-        -(2_f32).sqrt() * (t + FRAC_PI_4).sin(),
-        -(2_f32).sqrt() * (t + FRAC_PI_4).cos()
-    );
-    vertex[0][0][1] = vec3!(
-        -1.0,
-        -(2_f32).sqrt() * (t + FRAC_PI_4).cos(),
-        (2_f32).sqrt() * (t + FRAC_PI_4).sin()
-    );
-    vertex[0][1][0] = vec3!(
-        -1.0,
-        (2_f32).sqrt() * (t + FRAC_PI_4).cos(),
-        -(2_f32).sqrt() * (t + FRAC_PI_4).sin()
-    );
-    vertex[0][1][1] = vec3!(
-        -1.0,
-        (2_f32).sqrt() * (t + FRAC_PI_4).sin(),
-        (2_f32).sqrt() * (t + FRAC_PI_4).cos()
-    );
-    vertex[1][0][0] = vec3!(
-        1.0,
-        -(2_f32).sqrt() * (t + FRAC_PI_4).sin(),
-        -(2_f32).sqrt() * (t + FRAC_PI_4).cos()
-    );
-    vertex[1][0][1] = vec3!(
-        1.0,
-        -(2_f32).sqrt() * (t + FRAC_PI_4).cos(),
-        (2_f32).sqrt() * (t + FRAC_PI_4).sin()
-    );
-    vertex[1][1][0] = vec3!(
-        1.0,
-        (2_f32).sqrt() * (t + FRAC_PI_4).cos(),
-        -(2_f32).sqrt() * (t + FRAC_PI_4).sin()
-    );
-    vertex[1][1][1] = vec3!(
-        1.0,
-        (2_f32).sqrt() * (t + FRAC_PI_4).sin(),
-        (2_f32).sqrt() * (t + FRAC_PI_4).cos()
-    );
-
-    let objects: Vec<Box<dyn Object3d>> = vec![
-        Box::new(Trig::from(
-            vertex[0][0][0],
-            vertex[0][1][0],
-            vertex[0][0][1],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[0][1][1],
-            vertex[0][1][0],
-            vertex[0][0][1],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[1][0][0],
-            vertex[1][1][0],
-            vertex[1][0][1],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[1][1][1],
-            vertex[1][0][1],
-            vertex[1][1][0],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[0][0][0],
-            vertex[1][0][0],
-            vertex[0][0][1],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[1][0][1],
-            vertex[1][0][0],
-            vertex[0][0][1],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[0][1][0],
-            vertex[1][1][0],
-            vertex[0][1][1],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[1][1][1],
-            vertex[0][1][1],
-            vertex[1][1][0],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[0][0][0],
-            vertex[0][1][0],
-            vertex[1][0][0],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[1][1][0],
-            vertex[0][1][0],
-            vertex[1][0][0],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[0][0][1],
-            vertex[0][1][1],
-            vertex[1][0][1],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vertex[1][1][1],
-            vertex[1][0][1],
-            vertex[0][1][1],
-            Color::BLUE,
-        )),
-        Box::new(Trig::from(
-            vec3!(5.0, -5.0, -2.0),
-            vec3!(5.0, 5.0, -2.0),
-            vec3!(-5.0, 5.0, -2.0),
-            Color::MAGENTA,
-        )),
-        Box::new(Trig::from(
-            vec3!(5.0, -5.0, -2.0),
-            vec3!(-5.0, -5.0, -2.0),
-            vec3!(-5.0, 5.0, -2.0),
-            Color::MAGENTA,
-        )),
-    ];
-
-    let lights = vec![Light::from(
-        vec3!(2.0, 1.0, 10.0) / 2.0,
-        10000.0,
-        Color::ORANGE,
-    )];
-
-    (objects, lights)
 }
 
