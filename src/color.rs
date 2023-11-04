@@ -7,6 +7,21 @@ impl From<Color> for [u8; 4] {
     }
 }
 
+use std::ops::Mul;
+
+impl Mul<f32> for Color {
+    type Output = [u8; 4];
+
+    fn mul(self, k: f32) -> Self::Output {
+        [
+            (self.0[0] as f32 * k) as u8,
+            (self.0[1] as f32 * k) as u8,
+            (self.0[2] as f32 * k) as u8,
+            (self.0[3] as f32 * k) as u8,
+        ]
+    }
+}
+
 impl Color {
     fn from(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self([r, g, b, a])

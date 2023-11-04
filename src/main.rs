@@ -15,61 +15,8 @@ use color::*;
 mod tracer;
 use tracer::*;
 
-/*fn construct(t: f32) -> (Vec<Object3d>, Vec<Light>) {
-    let mut TT: Vec<Object3d> = vec![];
-
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vec3!(5.0, -5.0, -1.0),
-        vec3!(5.0, 5.0, -1.0),
-        vec3!(-5.0, 5.0, -1.0),
-        Color::MAGENTA,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vec3!(5.0, -5.0, -1.0),
-        vec3!(-5.0, -5.0, -1.0),
-        vec3!(-5.0, 5.0, -1.0),
-        Color::MAGENTA,
-    ));
-    TT.push(T);
-
-    let T: Object3d = Object3d::Sphere(Sphere::from(vec3!(), 1.0, Color::RED));
-    TT.push(T);
-
-    let mut LL: Vec<Light> = vec![];
-
-    let L: Light = Light::from(vec3!(2.0, 1.0, 2.0) * 5.0, 7500.0, Color::ORANGE);
-    LL.push(L);
-
-    (TT, LL)
-}*/
-
 const SIDE: usize = 512;
 const TARGET_FPS: u64 = 60;
-
-fn draw(t: f32, screen: &mut [u8]) {
-    let scr = SIDE as f32 / 2.0;
-    let pos = vec3!(6.0, 0.0, 3.0);
-    let cam: Camera = Camera::from(
-        pos,
-        vec3!() - pos.normalize(),
-        vec3!(0.0, 1.0, 0.0),
-        vec3!() - vec3!(-1.0, 0.0, 2.0).normalize(),
-    );
-    let TL = construct(t);
-
-    for (pos, pix) in screen.chunks_exact_mut(4).enumerate() {
-        let (x, y) = (pos / SIDE, pos % SIDE);
-        let color = get_color(
-            (y as f32 - scr) / scr,
-            (x as f32 - scr) / scr,
-            &TL.0,
-            &TL.1,
-            &cam,
-        );
-        pix.copy_from_slice(&color);
-    }
-}
 
 fn main() -> Result<(), Error> {
     env_logger::init();
@@ -93,7 +40,16 @@ fn main() -> Result<(), Error> {
         Pixels::new(SIDE as u32, SIDE as u32, surface_texture)?
     };
 
+    let pos = vec3!(6.0, 0.0, 3.0);
+    let camera = Camera::from(
+        pos,
+        vec3!() - pos.normalize(),
+        vec3!(0.0, 1.0, 0.0),
+        vec3!() - vec3!(-1.0, 0.0, 2.0).normalize(),
+    );
+
     let mut t: f32 = 1.3;
+    let mut tracer = Tracer::from(SIDE, camera, Box::new(|t| construct(t)));
 
     event_loop.run(move |event, _, control_flow| {
         let start_time = Instant::now();
@@ -122,7 +78,7 @@ fn main() -> Result<(), Error> {
         if let Event::RedrawRequested(_) = event {
             let start_draw = Instant::now();
 
-            draw(t, pixels.frame_mut());
+            tracer.draw(t, pixels.frame_mut());
             t += 0.05;
 
             let draw_time = Instant::now().duration_since(start_draw).as_secs_f32();
@@ -137,144 +93,144 @@ fn main() -> Result<(), Error> {
     });
 }
 
-fn construct(t: f32) -> (Vec<Object3d>, Vec<Light>) {
-    let pi = std::f32::consts::PI;
+use std::f32::consts::PI;
+
+fn construct(t: f32) -> (Vec<Box<dyn Object3d>>, Vec<Light>) {
     let mut vertex = [[[vec3!(); 2]; 2]; 2];
     vertex[0][0][0] = vec3!(
         -1.0,
-        -(2.0 as f32).sqrt() * (t + pi / 4.0).sin(),
-        -(2.0 as f32).sqrt() * (t + pi / 4.0).cos()
+        -(2.0 as f32).sqrt() * (t + PI / 4.0).sin(),
+        -(2.0 as f32).sqrt() * (t + PI / 4.0).cos()
     );
     vertex[0][0][1] = vec3!(
         -1.0,
-        -(2.0 as f32).sqrt() * (t + pi / 4.0).cos(),
-        (2.0 as f32).sqrt() * (t + pi / 4.0).sin()
+        -(2.0 as f32).sqrt() * (t + PI / 4.0).cos(),
+        (2.0 as f32).sqrt() * (t + PI / 4.0).sin()
     );
     vertex[0][1][0] = vec3!(
         -1.0,
-        (2.0 as f32).sqrt() * (t + pi / 4.0).cos(),
-        -(2.0 as f32).sqrt() * (t + pi / 4.0).sin()
+        (2.0 as f32).sqrt() * (t + PI / 4.0).cos(),
+        -(2.0 as f32).sqrt() * (t + PI / 4.0).sin()
     );
     vertex[0][1][1] = vec3!(
         -1.0,
-        (2.0 as f32).sqrt() * (t + pi / 4.0).sin(),
-        (2.0 as f32).sqrt() * (t + pi / 4.0).cos()
+        (2.0 as f32).sqrt() * (t + PI / 4.0).sin(),
+        (2.0 as f32).sqrt() * (t + PI / 4.0).cos()
     );
     vertex[1][0][0] = vec3!(
         1.0,
-        -(2.0 as f32).sqrt() * (t + pi / 4.0).sin(),
-        -(2.0 as f32).sqrt() * (t + pi / 4.0).cos()
+        -(2.0 as f32).sqrt() * (t + PI / 4.0).sin(),
+        -(2.0 as f32).sqrt() * (t + PI / 4.0).cos()
     );
     vertex[1][0][1] = vec3!(
         1.0,
-        -(2.0 as f32).sqrt() * (t + pi / 4.0).cos(),
-        (2.0 as f32).sqrt() * (t + pi / 4.0).sin()
+        -(2.0 as f32).sqrt() * (t + PI / 4.0).cos(),
+        (2.0 as f32).sqrt() * (t + PI / 4.0).sin()
     );
     vertex[1][1][0] = vec3!(
         1.0,
-        (2.0 as f32).sqrt() * (t + pi / 4.0).cos(),
-        -(2.0 as f32).sqrt() * (t + pi / 4.0).sin()
+        (2.0 as f32).sqrt() * (t + PI / 4.0).cos(),
+        -(2.0 as f32).sqrt() * (t + PI / 4.0).sin()
     );
     vertex[1][1][1] = vec3!(
         1.0,
-        (2.0 as f32).sqrt() * (t + pi / 4.0).sin(),
-        (2.0 as f32).sqrt() * (t + pi / 4.0).cos()
+        (2.0 as f32).sqrt() * (t + PI / 4.0).sin(),
+        (2.0 as f32).sqrt() * (t + PI / 4.0).cos()
     );
 
-    let mut TT: Vec<Object3d> = vec![];
+    let objects: Vec<Box<dyn Object3d>> = vec![
+        Box::new(Trig::from(
+            vertex[0][0][0],
+            vertex[0][1][0],
+            vertex[0][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][1][1],
+            vertex[0][1][0],
+            vertex[0][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][0][0],
+            vertex[1][1][0],
+            vertex[1][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][1][1],
+            vertex[1][0][1],
+            vertex[1][1][0],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][0][0],
+            vertex[1][0][0],
+            vertex[0][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][0][1],
+            vertex[1][0][0],
+            vertex[0][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][1][0],
+            vertex[1][1][0],
+            vertex[0][1][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][1][1],
+            vertex[0][1][1],
+            vertex[1][1][0],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][0][0],
+            vertex[0][1][0],
+            vertex[1][0][0],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][1][0],
+            vertex[0][1][0],
+            vertex[1][0][0],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[0][0][1],
+            vertex[0][1][1],
+            vertex[1][0][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vertex[1][1][1],
+            vertex[1][0][1],
+            vertex[0][1][1],
+            Color::BLUE,
+        )),
+        Box::new(Trig::from(
+            vec3!(5.0, -5.0, -2.0),
+            vec3!(5.0, 5.0, -2.0),
+            vec3!(-5.0, 5.0, -2.0),
+            Color::MAGENTA,
+        )),
+        Box::new(Trig::from(
+            vec3!(5.0, -5.0, -2.0),
+            vec3!(-5.0, -5.0, -2.0),
+            vec3!(-5.0, 5.0, -2.0),
+            Color::MAGENTA,
+        )),
+    ];
 
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[0][0][0],
-        vertex[0][1][0],
-        vertex[0][0][1],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[0][1][1],
-        vertex[0][1][0],
-        vertex[0][0][1],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[1][0][0],
-        vertex[1][1][0],
-        vertex[1][0][1],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[1][1][1],
-        vertex[1][0][1],
-        vertex[1][1][0],
-        Color::BLUE,
-    ));
-    TT.push(T);
+    let lights = vec![Light::from(
+        vec3!(2.0, 1.0, 10.0) / 2.0,
+        10000.0,
+        Color::ORANGE,
+    )];
 
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[0][0][0],
-        vertex[1][0][0],
-        vertex[0][0][1],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[1][0][1],
-        vertex[1][0][0],
-        vertex[0][0][1],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[0][1][0],
-        vertex[1][1][0],
-        vertex[0][1][1],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[1][1][1],
-        vertex[0][1][1],
-        vertex[1][1][0],
-        Color::BLUE,
-    ));
-    TT.push(T);
-
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[0][0][0],
-        vertex[0][1][0],
-        vertex[1][0][0],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[1][1][0],
-        vertex[0][1][0],
-        vertex[1][0][0],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[0][0][1],
-        vertex[0][1][1],
-        vertex[1][0][1],
-        Color::BLUE,
-    ));
-    TT.push(T);
-    let T: Object3d = Object3d::Trig(Trig::from(
-        vertex[1][1][1],
-        vertex[1][0][1],
-        vertex[0][1][1],
-        Color::BLUE,
-    ));
-    TT.push(T);
-
-    let mut LL: Vec<Light> = vec![];
-
-    let L: Light = Light::from(vec3!(2.0, 1.0, 10.0) / 2.0, 10000.0, Color::ORANGE);
-    LL.push(L);
-
-    (TT, LL)
+    (objects.into(), lights)
 }
 
