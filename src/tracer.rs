@@ -7,8 +7,8 @@ use crate::primitives::*;
 use crate::scene::construct_scene;
 use crate::utils::*;
 
-const SKY_COLOR: Color = Color::SKYBLUE;
-// const SKY_COLOR: Color = Color::BLACK;
+// const SKY_COLOR: Color = Color::SKYBLUE;
+const SKY_COLOR: Color = Color::BLACK;
 
 pub struct Tracer {
     side: usize,

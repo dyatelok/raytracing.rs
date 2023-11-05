@@ -4,7 +4,7 @@ use crate::utils::*;
 use euler::vec3;
 
 fn construct_camera() -> Camera {
-    let pos = vec3!(3.0, 0.0, 15.0);
+    let pos = vec3!(2.4, 0.0, 12.0);
     let dir = vec3![] - pos.normalize();
     let base1 = vec3![0.0, 1.0, 0.0];
     let base2 = dir.cross(base1).normalize();
