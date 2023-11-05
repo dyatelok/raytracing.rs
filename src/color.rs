@@ -7,7 +7,7 @@ impl From<Color> for [f32; 4] {
     }
 }
 
-use std::ops::Mul;
+use std::ops::{Add, Mul};
 
 impl Mul<f32> for Color {
     type Output = Self;
@@ -35,6 +35,19 @@ impl Mul for Color {
     }
 }
 
+impl Add for Color {
+    type Output = Self;
+
+    fn add(self, rhs: Color) -> Self::Output {
+        Self::from(
+            self.0[0] + rhs.0[0],
+            self.0[1] + rhs.0[1],
+            self.0[2] + rhs.0[2],
+            self.0[3] + rhs.0[3],
+        )
+    }
+}
+
 #[allow(clippy::eq_op)]
 impl Color {
     fn from(r: f32, g: f32, b: f32, a: f32) -> Self {
@@ -42,10 +55,10 @@ impl Color {
     }
     pub fn into_u8(self) -> [u8; 4] {
         [
-            (self.0[0] * 255.0) as u8,
-            (self.0[1] * 255.0) as u8,
-            (self.0[2] * 255.0) as u8,
-            (self.0[3] * 255.0) as u8,
+            (self.0[0] * 255.0).max(0.0).min(255.0) as u8,
+            (self.0[1] * 255.0).max(0.0).min(255.0) as u8,
+            (self.0[2] * 255.0).max(0.0).min(255.0) as u8,
+            (self.0[3] * 255.0).max(0.0).min(255.0) as u8,
         ]
     }
     pub const LIGHTGRAY: Color =

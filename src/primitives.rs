@@ -1,61 +1,5 @@
-use super::color::*;
+use crate::utils::*;
 use euler::{vec3, Vec3};
-
-pub struct Camera {
-    pos: Vec3,
-    dir: Vec3,
-    base1: Vec3,
-    base2: Vec3,
-}
-
-impl Camera {
-    pub fn from(pos: Vec3, dir: Vec3, base1: Vec3, base2: Vec3) -> Self {
-        Self {
-            pos,
-            dir,
-            base1,
-            base2,
-        }
-    }
-    pub fn get_ray(&self, u: f32, v: f32) -> Ray {
-        Ray {
-            pos: self.pos,
-            dir: (self.dir + u * self.base1 + v * self.base2).normalize(),
-        }
-    }
-}
-
-pub struct Ray {
-    pub pos: Vec3,
-    pub dir: Vec3,
-}
-
-impl Ray {
-    pub fn from(pos: Vec3, dir: Vec3) -> Self {
-        Self { pos, dir }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct Material {
-    pub color: Color,
-    pub reflexivity: f32,
-    // pub emitting: f32,
-    // metallicity: f32,
-}
-
-impl Material {
-    pub fn from(
-        color: Color,
-        reflexivity: f32, /* emitting: f32*/ /*, metallicity: f32*/
-    ) -> Self {
-        Self {
-            color,
-            reflexivity,
-            // emitting, /*, metallicity */
-        }
-    }
-}
 
 pub trait Object3d {
     fn intersects(&self, ray: &Ray) -> bool;
@@ -114,12 +58,12 @@ impl Object3d for Sphere {
         let pos = ray.pos + (t - 0.001) * ray.dir;
         let norm = self.get_norm(pos);
 
-        let reflexivity = self.get_mat().reflexivity;
+        let metallicity = self.get_mat().metallicity;
 
         let reflection = ray.dir + 2.0 * ray.dir.dot(vec3![] - norm) * norm;
 
         let direction =
-            (reflexivity * reflection + (1.0 - reflexivity) * random_norm(norm)).normalize();
+            (metallicity * reflection + (1.0 - metallicity) * random_normal(norm)).normalize();
 
         Ray::from(pos, direction)
     }
@@ -131,20 +75,16 @@ impl Object3d for Sphere {
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 
-fn random_sphere() -> Vec3 {
+fn random_normal(normal: Vec3) -> Vec3 {
     let mut rng = thread_rng();
     let x: f32 = rng.sample(StandardNormal);
     let y: f32 = rng.sample(StandardNormal);
     let z: f32 = rng.sample(StandardNormal);
-    vec3![x, y, z].normalize()
-}
-
-fn random_norm(norm: Vec3) -> Vec3 {
-    let vec = random_sphere();
-    if norm.dot(vec) < 0f32 {
-        vec3![] - vec
+    let random_point = vec3![x, y, z].normalize();
+    if normal.dot(random_point) < 0f32 {
+        vec3![] - random_point
     } else {
-        vec
+        random_point
     }
 }
 

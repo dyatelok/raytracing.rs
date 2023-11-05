@@ -1,4 +1,3 @@
-use euler::vec3;
 use pixels::{Error, Pixels, SurfaceTexture};
 use std::time::Instant;
 use winit::{
@@ -11,13 +10,13 @@ use winit_input_helper::WinitInputHelper;
 
 mod color;
 mod primitives;
-
-use primitives::Camera;
+mod scene;
+mod utils;
 
 mod tracer;
 use tracer::*;
 
-const SIDE: usize = 512;
+const SIDE: usize = 1024;
 const TARGET_FPS: u64 = 60;
 
 fn main() -> Result<(), Error> {
@@ -42,16 +41,8 @@ fn main() -> Result<(), Error> {
         Pixels::new(SIDE as u32, SIDE as u32, surface_texture)?
     };
 
-    let pos = vec3!(3.0, 0.0, 15.0);
-    let camera = Camera::from(
-        pos,
-        vec3!() - pos.normalize(),
-        vec3!(0.0, 1.0, 0.0),
-        vec3!(1.0, 0.0, -2.0).normalize(),
-    );
-
-    let mut t: f32 = 1.3;
-    let mut tracer = Tracer::from(SIDE, camera);
+    let t: f32 = 0.0;
+    let mut tracer = Tracer::from(SIDE);
 
     event_loop.run(move |event, _, control_flow| {
         let start_time = Instant::now();
@@ -81,7 +72,7 @@ fn main() -> Result<(), Error> {
             let start_draw = Instant::now();
 
             tracer.draw(t, pixels.frame_mut());
-            t += 0.05;
+            // t += 0.05;
 
             let draw_time = Instant::now().duration_since(start_draw).as_secs_f32();
             let fps = 1.0 / draw_time;

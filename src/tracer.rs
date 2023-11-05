@@ -1,35 +1,13 @@
-use euler::{vec3, Vec3};
+use euler::vec3;
 use rayon::prelude::*;
 
 use crate::color::*;
 use crate::primitives::*;
+use crate::scene::construct_scene;
+use crate::utils::*;
 
-const SKY_COLOR: Color = Color::SKYBLUE;
-
-fn construct(_t: f32) -> Vec<Box<dyn Object3d + Sync>> {
-    vec![
-        Box::new(Sphere::from(
-            vec3![0.0, 0.0, -100.0],
-            100.0,
-            Material::from(Color::PURPLE, 1.0),
-        )),
-        Box::new(Sphere::from(
-            vec3![0.0, 0.0, 3.0],
-            3.0,
-            Material::from(Color::RED, 1.0),
-        )),
-        Box::new(Sphere::from(
-            vec3![5.0, -1.0, 2.0],
-            2.0,
-            Material::from(Color::GREEN, 1.0),
-        )),
-        Box::new(Sphere::from(
-            vec3![8.0, -1.5, 1.0],
-            1.0,
-            Material::from(Color::BLUE, 1.0),
-        )),
-    ]
-}
+// const SKY_COLOR: Color = Color::SKYBLUE;
+const SKY_COLOR: Color = Color::BLACK;
 
 pub struct Tracer {
     side: usize,
@@ -38,15 +16,16 @@ pub struct Tracer {
 }
 
 impl Tracer {
-    pub fn from(side: usize, camera: Camera) -> Self {
+    pub fn from(side: usize) -> Self {
         Self {
             side,
-            camera,
+            camera: Camera::new(),
             objects: vec![],
         }
     }
     fn set_scene(&mut self, t: f32) {
-        let objects = construct(t);
+        let (camera, objects) = construct_scene(t);
+        self.camera = camera;
         self.objects = objects;
     }
     pub fn draw(&mut self, t: f32, screen: &mut [u8]) {
@@ -69,7 +48,7 @@ impl Tracer {
 
     pub fn get_pixel_color(&self, u: f32, v: f32) -> Color {
         let ray: Ray = self.camera.get_ray(u, v);
-        const REFLECTION_LIMIT: usize = 2;
+        const REFLECTION_LIMIT: usize = 5;
         self.cast_ray(&ray, REFLECTION_LIMIT)
     }
 
@@ -102,16 +81,24 @@ impl Tracer {
                 let light_ray = Ray::from(pos, to_light.normalize());
                 let ray_intersect: bool =
                     self.objects.iter().any(|elem| elem.intersects(&light_ray));
-                if ray_intersect {
+                let sky_color = if ray_intersect {
                     Color::BLACK
                 } else {
-                    to_collide.get_mat().color * norm.dot(to_light)
-                }
+                    SKY_COLOR * to_collide.get_mat().color * norm.dot(to_light)
+                };
+                let emmiting_color =
+                    to_collide.get_mat().emitting_color * to_collide.get_mat().emitting;
+
+                sky_color + emmiting_color
             }
             refl => {
                 let next_ray = to_collide.get_next_ray(ray);
                 let coming = self.cast_ray(&next_ray, refl - 1);
-                coming * to_collide.get_mat().color
+                let coming_color = coming * to_collide.get_mat().color;
+                let emmiting_color =
+                    to_collide.get_mat().emitting_color * to_collide.get_mat().emitting;
+
+                coming_color + emmiting_color
             }
         }
     }
