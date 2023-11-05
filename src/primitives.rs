@@ -5,8 +5,21 @@ pub trait Object3d {
     fn intersects(&self, ray: &Ray) -> bool;
     fn get_t(&self, ray: &Ray) -> f32;
     fn get_mat(&self) -> Material;
-    fn get_next_ray(&self, ray: &Ray) -> Ray;
     fn get_norm(&self, pos: Vec3) -> Vec3;
+    fn get_next_ray(&self, ray: &Ray) -> Ray {
+        let t = self.get_t(ray);
+        let pos = ray.pos + (t - 0.001) * ray.dir;
+        let norm = self.get_norm(pos);
+
+        let metallicity = self.get_mat().metallicity;
+
+        let reflection = ray.dir + 2.0 * ray.dir.dot(vec3![] - norm) * norm;
+
+        let direction =
+            (metallicity * reflection + (1.0 - metallicity) * random_normal(norm)).normalize();
+
+        Ray::from(pos, direction)
+    }
 }
 
 pub struct Sphere {
@@ -53,20 +66,6 @@ impl Object3d for Sphere {
     fn get_mat(&self) -> Material {
         self.mat
     }
-    fn get_next_ray(&self, ray: &Ray) -> Ray {
-        let t = self.get_t(ray);
-        let pos = ray.pos + (t - 0.001) * ray.dir;
-        let norm = self.get_norm(pos);
-
-        let metallicity = self.get_mat().metallicity;
-
-        let reflection = ray.dir + 2.0 * ray.dir.dot(vec3![] - norm) * norm;
-
-        let direction =
-            (metallicity * reflection + (1.0 - metallicity) * random_normal(norm)).normalize();
-
-        Ray::from(pos, direction)
-    }
     fn get_norm(&self, pos: Vec3) -> Vec3 {
         (pos - self.pos).normalize()
     }
@@ -88,7 +87,7 @@ fn random_normal(normal: Vec3) -> Vec3 {
     }
 }
 
-/*pub struct Trig {
+pub struct Trig {
     v0: Vec3,
     v1: Vec3,
     v2: Vec3,
@@ -145,9 +144,11 @@ impl Object3d for Trig {
             / (a * ray.dir.x + b * ray.dir.y + c * ray.dir.z);
         t
     }
-    fn get_color(&self) -> Color {
-        self.mat.color
+    fn get_mat(&self) -> Material {
+        self.mat
+    }
+    fn get_norm(&self, _pos: Vec3) -> Vec3 {
+        (self.v2 - self.v0).cross(self.v1 - self.v0).normalize()
     }
 }
-*/
 

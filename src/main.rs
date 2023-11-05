@@ -17,6 +17,7 @@ mod tracer;
 use tracer::*;
 
 const SIDE: usize = 1024;
+const SCALER: usize = 1;
 const TARGET_FPS: u64 = 60;
 
 fn main() -> Result<(), Error> {
@@ -26,7 +27,7 @@ fn main() -> Result<(), Error> {
 
     let window = {
         let size = LogicalSize::new(SIDE as f64, SIDE as f64);
-        let scaled_size = LogicalSize::new(SIDE as f64, SIDE as f64);
+        let scaled_size = LogicalSize::new((SIDE * SCALER) as f64, (SIDE * SCALER) as f64);
         WindowBuilder::new()
             .with_title("ray tracing")
             .with_inner_size(scaled_size)
@@ -41,7 +42,7 @@ fn main() -> Result<(), Error> {
         Pixels::new(SIDE as u32, SIDE as u32, surface_texture)?
     };
 
-    let t: f32 = 0.0;
+    let mut t: f32 = 0.0;
     let mut tracer = Tracer::from(SIDE);
 
     event_loop.run(move |event, _, control_flow| {
@@ -72,7 +73,7 @@ fn main() -> Result<(), Error> {
             let start_draw = Instant::now();
 
             tracer.draw(t, pixels.frame_mut());
-            // t += 0.05;
+            t += 0.05;
 
             let draw_time = Instant::now().duration_since(start_draw).as_secs_f32();
             let fps = 1.0 / draw_time;
