@@ -7,7 +7,7 @@ impl From<Color> for [f32; 4] {
     }
 }
 
-use std::ops::{Add, Mul};
+use std::ops::{Add, Div, Mul};
 
 impl Mul<f32> for Color {
     type Output = Self;
@@ -44,6 +44,19 @@ impl Add for Color {
             self.0[1] + rhs.0[1],
             self.0[2] + rhs.0[2],
             self.0[3] + rhs.0[3],
+        )
+    }
+}
+
+impl Div<f32> for Color {
+    type Output = Self;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Self::from(
+            self.0[0] / rhs,
+            self.0[1] / rhs,
+            self.0[2] / rhs,
+            self.0[3] / rhs,
         )
     }
 }

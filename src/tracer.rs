@@ -1,4 +1,5 @@
 use euler::vec3;
+use rand::prelude::*;
 use rayon::prelude::*;
 
 use crate::color::*;
@@ -6,13 +7,15 @@ use crate::primitives::*;
 use crate::scene::construct_scene;
 use crate::utils::*;
 
-// const SKY_COLOR: Color = Color::SKYBLUE;
-const SKY_COLOR: Color = Color::BLACK;
+const SKY_COLOR: Color = Color::SKYBLUE;
+// const SKY_COLOR: Color = Color::BLACK;
 
 pub struct Tracer {
     side: usize,
     camera: Camera,
     objects: Vec<Box<dyn Object3d + Sync>>,
+    screen: Vec<Color>,
+    frames: f32,
 }
 
 impl Tracer {
@@ -21,6 +24,8 @@ impl Tracer {
             side,
             camera: Camera::new(),
             objects: vec![],
+            screen: vec![Color::BLACK; side * side],
+            frames: 0.0,
         }
     }
     fn set_scene(&mut self, t: f32) {
@@ -32,17 +37,23 @@ impl Tracer {
         self.set_scene(t);
 
         let scr = self.side as f32 / 2.0;
-        let screen_pre: Vec<_> = (0..self.side.pow(2))
+        self.screen = (0..self.side.pow(2))
             .into_par_iter()
             .map(|pos| {
+                let mut rng = thread_rng();
                 let (x, y) = (pos / self.side, pos % self.side);
-                self.get_pixel_color((y as f32 - scr) / scr, (x as f32 - scr) / scr)
-                    .into_u8()
+                let x_var: f32 = rng.gen::<f32>() - 0.5;
+                let y_var: f32 = rng.gen::<f32>() - 0.5;
+                let (x, y) = (x as f32 + x_var, y as f32 + y_var);
+                let (x, y) = ((y - scr) / scr, (x - scr) / scr);
+                (self.screen[pos] * self.frames + self.get_pixel_color(x, y)) / (self.frames + 1.0)
             })
             .collect();
 
+        self.frames += 1.0;
+
         for (pos, pix) in screen.chunks_exact_mut(4).enumerate() {
-            pix.copy_from_slice(&screen_pre[pos]);
+            pix.copy_from_slice(&self.screen[pos].into_u8());
         }
     }
 
