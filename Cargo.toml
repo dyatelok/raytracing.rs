@@ -14,5 +14,6 @@ log = "0.4"
 winit = "0.28"
 winit_input_helper = "0.14"
 rayon = "1.8.0"
+rand_distr = "0.4.3"
 
 

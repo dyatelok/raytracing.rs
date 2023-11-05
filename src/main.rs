@@ -42,12 +42,12 @@ fn main() -> Result<(), Error> {
         Pixels::new(SIDE as u32, SIDE as u32, surface_texture)?
     };
 
-    let pos = vec3!(6.0, 0.0, 3.0);
+    let pos = vec3!(3.0, 0.0, 15.0);
     let camera = Camera::from(
         pos,
         vec3!() - pos.normalize(),
         vec3!(0.0, 1.0, 0.0),
-        vec3!() - vec3!(-1.0, 0.0, 2.0).normalize(),
+        vec3!(1.0, 0.0, -2.0).normalize(),
     );
 
     let mut t: f32 = 1.3;

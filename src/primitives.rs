@@ -1,5 +1,5 @@
 use super::color::*;
-use euler::Vec3;
+use euler::{vec3, Vec3};
 
 pub struct Camera {
     pos: Vec3,
@@ -36,35 +36,45 @@ impl Ray {
     }
 }
 
-pub struct Light {
-    pub pos: Vec3,
-    pub int: f32, //intensity
-    #[allow(dead_code)]
-    pub col: Color,
+#[derive(Clone, Copy)]
+pub struct Material {
+    pub color: Color,
+    pub reflexivity: f32,
+    // pub emitting: f32,
+    // metallicity: f32,
 }
 
-impl Light {
-    pub fn from(pos: Vec3, int: f32, col: Color) -> Self {
-        Self { pos, int, col }
+impl Material {
+    pub fn from(
+        color: Color,
+        reflexivity: f32, /* emitting: f32*/ /*, metallicity: f32*/
+    ) -> Self {
+        Self {
+            color,
+            reflexivity,
+            // emitting, /*, metallicity */
+        }
     }
 }
 
 pub trait Object3d {
     fn intersects(&self, ray: &Ray) -> bool;
     fn get_t(&self, ray: &Ray) -> f32;
-    fn get_color(&self) -> Color;
+    fn get_mat(&self) -> Material;
+    fn get_next_ray(&self, ray: &Ray) -> Ray;
+    fn get_norm(&self, pos: Vec3) -> Vec3;
 }
 
 pub struct Sphere {
     pos: Vec3,
     rad: f32,
-    col: Color,
+    mat: Material,
 }
 
 impl Sphere {
     #[allow(dead_code)]
-    pub fn from(pos: Vec3, rad: f32, col: Color) -> Self {
-        Self { pos, rad, col }
+    pub fn from(pos: Vec3, rad: f32, mat: Material) -> Self {
+        Self { pos, rad, mat }
     }
 }
 
@@ -96,21 +106,58 @@ impl Object3d for Sphere {
         let t1: f32 = (-b + d.sqrt()) / 2.0;
         t0.min(t1)
     }
-    fn get_color(&self) -> Color {
-        self.col
+    fn get_mat(&self) -> Material {
+        self.mat
+    }
+    fn get_next_ray(&self, ray: &Ray) -> Ray {
+        let t = self.get_t(ray);
+        let pos = ray.pos + (t - 0.001) * ray.dir;
+        let norm = self.get_norm(pos);
+
+        let reflexivity = self.get_mat().reflexivity;
+
+        let reflection = ray.dir + 2.0 * ray.dir.dot(vec3![] - norm) * norm;
+
+        let direction =
+            (reflexivity * reflection + (1.0 - reflexivity) * random_norm(norm)).normalize();
+
+        Ray::from(pos, direction)
+    }
+    fn get_norm(&self, pos: Vec3) -> Vec3 {
+        (pos - self.pos).normalize()
     }
 }
 
-pub struct Trig {
+use rand::prelude::*;
+use rand_distr::StandardNormal;
+
+fn random_sphere() -> Vec3 {
+    let mut rng = thread_rng();
+    let x: f32 = rng.sample(StandardNormal);
+    let y: f32 = rng.sample(StandardNormal);
+    let z: f32 = rng.sample(StandardNormal);
+    vec3![x, y, z].normalize()
+}
+
+fn random_norm(norm: Vec3) -> Vec3 {
+    let vec = random_sphere();
+    if norm.dot(vec) < 0f32 {
+        vec3![] - vec
+    } else {
+        vec
+    }
+}
+
+/*pub struct Trig {
     v0: Vec3,
     v1: Vec3,
     v2: Vec3,
-    col: Color,
+    mat: Material,
 }
 
 impl Trig {
-    pub fn from(v0: Vec3, v1: Vec3, v2: Vec3, col: Color) -> Self {
-        Self { v0, v1, v2, col }
+    pub fn from(v0: Vec3, v1: Vec3, v2: Vec3, mat: Material) -> Self {
+        Self { v0, v1, v2, mat }
     }
 }
 
@@ -159,7 +206,8 @@ impl Object3d for Trig {
         t
     }
     fn get_color(&self) -> Color {
-        self.col
+        self.mat.color
     }
 }
+*/
 
